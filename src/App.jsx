@@ -13,6 +13,8 @@ import EventPage from "./pages/EventPage";
 import CreateEvent from "./pages/CreateEvent";
 import ManageProfile from "./pages/ManageProfile";
 import Bookings from "./pages/Bookings";
+import Page from "./shadcn/page";
+import Pages from "./shadcn/create/page";
 
 // Admin Pages
 import AdminDashboard from "./adminpages/AdminDashboard";
@@ -23,6 +25,7 @@ import ViewFeedback from "./adminpages/ViewFeedback";
 import VenuePage from "./adminpages/VenuePage";
 import ViewRegistrations from "./adminpages/ViewRegistrations";
 
+
 // Host Pages
 import HostDashboard from "./hostpages/HostDashboard";
 import HostEvents from "./hostpages/HostEvents";
@@ -31,6 +34,8 @@ import HostAttendance from "./hostpages/HostAttendance";
 import HostFeedback from "./hostpages/HostFeedback";
 import ViewRequests from "./adminpages/ViewRequests";
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   return (
@@ -48,6 +53,8 @@ function App() {
             <Route path="/create-event" element={<CreateEvent />} />
             <Route path="/manage-profile" element={<ManageProfile />} />
             <Route path="/bookings" element={<Bookings />} />
+            <Route path="page" element={<Page />} />
+            <Route path="pages" element={<Pages />} />
 
             {/* Private User Routes */}
             <Route path="/dashboard" element={<PrivateRoute Component={Dashboard} />} />
@@ -55,6 +62,7 @@ function App() {
 
             {/* Admin Routes */}
             <Route path="/admindash" element={<AdminDashboard />}>
+              <Route path="page" element={<Page />} />
               <Route path="view-users" element={<ViewUsers />} />
               <Route path="view-events" element={<ViewEvents />} />
               <Route path="view-registrations" element={<ViewRegistrations />} />
@@ -62,10 +70,12 @@ function App() {
               <Route path="view-requests" element={<ViewRequests />} />
               <Route path="view-feedback" element={<ViewFeedback />} />
               <Route path="view-venue" element={<VenuePage />} />
+              
             </Route>
 
             {/* Host Routes (Moved Outside) */}
             <Route path="/hostdash" element={<HostDashboard />}>
+              <Route path="page" element={<Page />} />
               <Route path="my-events" element={<HostEvents />} />
               <Route path="view-attendance" element={<HostAttendance />} />
               <Route path="view-feedback" element={<HostFeedback />} />
@@ -74,6 +84,7 @@ function App() {
           </Routes>
         </VenueProvider>
       </AuthProvider>
+      <ToastContainer position="top-center" autoClose={3000} />
     </BrowserRouter>
   );
 }

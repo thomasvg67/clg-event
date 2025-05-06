@@ -6,6 +6,12 @@ import { db } from "../lib/firebase";
 import { doc, getDoc, collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import QRCode from "react-qr-code";
+import {
+  FaMapMarkerAlt, FaLocationArrow, FaCalendarAlt, FaClock, FaAlignLeft, FaCheckCircle, FaBan,
+  FaTicketAlt, FaUser, FaUniversity, FaBook, FaEnvelope, FaPhone, FaRocket, FaRegSmileBeam,
+  FaHourglassHalf, FaCommentDots,
+} from "react-icons/fa";
+import { toast } from "react-toastify";
 
 export default function EventPage() {
   const { eventId } = useParams();
@@ -89,10 +95,14 @@ export default function EventPage() {
       const now = new Date().getTime();
 
       if (now >= eventEndTime) {
-        setTimeRemaining("🚀 Event has ended!");
+        setTimeRemaining(
+          <span><FaRocket className="inline text-gray-600 mr-1" /> Event has ended!</span>
+        );
         return;
       } else if (now >= eventStartTime) {
-        setTimeRemaining("🎉 Event has started!");
+        setTimeRemaining(
+          <span><FaRegSmileBeam className="inline text-green-600 mr-1" /> Event has started!</span>
+        );
         return;
       }
 
@@ -102,7 +112,13 @@ export default function EventPage() {
       const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-      setTimeRemaining(`⏳ Event starts in:  ${days}d ${hours}h ${minutes}m ${seconds}s`);
+      setTimeRemaining(
+        <span>
+          <FaHourglassHalf className="inline text-yellow-600 mr-1" />
+          Event starts in: {days}d {hours}h {minutes}m {seconds}s
+        </span>
+      );
+
     };
 
     updateCountdown();
@@ -130,32 +146,40 @@ export default function EventPage() {
 
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
-    if (!currentUser) {
-      alert("Please log in to submit feedback.");
-      return;
+    if (!currentUser) return toast.error("Please log in to submit feedback.");
+
+    const feedbackQuery = query(
+      collection(db, "eventFeedback"),
+      where("userId", "==", currentUser.uid),
+      where("eventId", "==", eventId)
+    );
+    const feedbackSnap = await getDocs(feedbackQuery);
+    if (!feedbackSnap.empty) {
+      return toast.error("You've already submitted feedback for this event.");
     }
+
     try {
       await addDoc(collection(db, "eventFeedback"), {
         userId: currentUser.uid,
-        eventId: eventId,
-        feedback: feedback,
-        rating: rating,
+        eventId,
+        feedback,
+        rating,
         submittedAt: new Date(),
       });
-      alert("✅ Feedback submitted successfully!");
+      toast.success("Feedback submitted successfully!");
       setShowFeedbackModal(false);
-      setFeedback(""); // Reset feedback input
+      setFeedback("");
       setRating(0);
     } catch (error) {
       console.error("Error submitting feedback:", error);
-      alert("Feedback submission failed. Try again.");
+      toast.error("Feedback submission failed. Try again.");
     }
   };
 
 
   const handleRegisterClick = async () => {
     if (!currentUser) {
-      alert("Please log in to register for this event.");
+      toast.error("Please log in to register for this event.");
       return;
     }
 
@@ -200,7 +224,7 @@ export default function EventPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      alert("You must be logged in to register for this event.");
+      toast.error("You must be logged in to register for this event.");
       return;
     }
     try {
@@ -212,10 +236,10 @@ export default function EventPage() {
       });
       setIsRegistered(true);
       setShowModal(false);
-      alert("🎉 Registration Successful!");
+      toast.success("Registration Successful!");
     } catch (error) {
       console.error("Error registering for event:", error);
-      alert("Registration failed. Please try again.");
+      toast.error("Registration failed. Please try again.");
     }
   };
 
@@ -229,14 +253,15 @@ export default function EventPage() {
           <p className="text-gray-500 text-center mt-1">{event.eventType} | {event.isPaid ? "Paid Event" : "Free Event"}</p>
 
           <div className="mt-4 space-y-2 text-gray-700">
-            <p><strong>📍 Venue:</strong> {venue ? venue.name : "Loading..."}</p>
+            <p><strong><FaMapMarkerAlt className="inline mr-1" /> Venue:</strong> {venue ? venue.name : "Loading..."}</p>
             {venue && (
-              <p><strong>📍 Location:</strong> {venue.location}</p>
+              <p><strong><FaLocationArrow className="inline mr-1" /> Location:</strong> {venue.location}</p>
             )}
-            <p><strong>📅 Date:</strong> {event.date}</p>
-            <p><strong>⏰ Time:</strong> {event.startTime} - {event.endTime}</p>
-            <p><strong>📖 Description:</strong> {event.description }</p>
+            <p><strong><FaCalendarAlt className="inline mr-1" /> Date:</strong> {event.date}</p>
+            <p><strong><FaClock className="inline mr-1" /> Time:</strong> {event.startTime} - {event.endTime}</p>
+            <p><strong><FaAlignLeft className="inline mr-1" /> Description:</strong> {event.description}</p>
           </div>
+
 
           <div className="text-center text-xl font-semibold text-red-600 mt-4">
             {timeRemaining && <p>{timeRemaining}</p>}
@@ -245,62 +270,106 @@ export default function EventPage() {
           {/* Register Button */}
           <div className="mt-6 text-center">
             <button
-              className={`w-full py-3 rounded-lg text-lg font-semibold transition-all ${isRegistered  || hasEventStarted()
+              className={`w-full py-3 rounded-lg text-lg font-semibold transition-all ${isRegistered || hasEventStarted()
                 ? "bg-gray-400 text-white cursor-not-allowed"
                 : "bg-indigo-600 text-white hover:bg-indigo-700"
                 }`}
-                onClick={!hasEventStarted() ? handleRegisterClick : undefined}
-                disabled={isRegistered || hasEventStarted()}
+              onClick={!hasEventStarted() ? handleRegisterClick : undefined}
+              disabled={isRegistered || hasEventStarted()}
             >
-              {isRegistered ? "✅ Registered" : hasEventStarted() ? "⛔ Registration Closed" : "🎟 Register Now"}
-            </button>
+              {isRegistered ? (
+                <span><FaCheckCircle className="inline text-green-600 mr-1" /> Registered</span>
+              ) : hasEventStarted() ? (
+                <span><FaBan className="inline text-red-600 mr-1" /> Registration Closed</span>
+              ) : (
+                <span><FaTicketAlt className="inline text-blue-600 mr-1" /> Register Now</span>
+              )}            </button>
           </div>
-          {isRegistered && (
-            <div className="h-64 w-64 mx-auto mt-10">
-              <QRCode
-                size={256}
-                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                value={currentUser.uid}
-                viewBox={`0 0 256 256`}
-              />
-            </div>
-          )}
+          {isRegistered && !hasEventEnded() && (() => {
+            const eventStartTime = new Date(`${event.date}T${event.startTime}`).getTime();
+            const now = new Date().getTime();
+            const oneHourBeforeEvent = eventStartTime - 60 * 60 * 1000; // 1 hour before event
+
+            if (now >= oneHourBeforeEvent) {
+              return (
+                <div className="h-64 w-64 mx-auto mt-10">
+                  <QRCode
+                    size={256}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    value={`${currentUser.uid}|${eventId}`}
+                    viewBox={`0 0 256 256`}
+                  />
+
+                </div>
+              );
+            }
+
+            return <p className="text-center mt-4 text-gray-500">Your QR Code will be available 1 hour before the event starts.</p>;
+          })()}
           {/* Feedback Button (only after event ends) */}
           {hasEventEnded() && attended && (
             <div className="mt-6 text-center">
               <button
-                className="w-full py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 text-lg font-semibold"
+                className="w-full py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 text-lg font-semibold flex items-center justify-center gap-2"
                 onClick={() => setShowFeedbackModal(true)}
               >
-                📝 Give Feedback
+                <FaCommentDots className="text-xl" />
+                Give Feedback
               </button>
+
             </div>
           )}
         </div>
       </div>
 
       {/* Registration Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative animate-fadeIn">
-            <button className="absolute top-2 right-2 p-2" onClick={handleCloseModal}>
-              <X className="text-gray-600 hover:text-red-500" />
-            </button>
-            <h2 className="text-lg font-bold mb-4 text-center">🎫 Event Registration</h2>
+{showModal && (
+  <div className="fixed inset-0 backdrop-blur-sm flex justify-center items-center p-4">
+    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative animate-fadeIn">
+      <button className="absolute top-2 right-2 p-2" onClick={handleCloseModal}>
+        <X className="text-gray-600 hover:text-red-500" />
+      </button>
+      <h2 className="text-lg font-bold mb-4 text-center">
+        <FaTicketAlt className="inline mr-2 text-indigo-600" />
+        Event Registration
+      </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input type="text" name="name" placeholder="👤 Student Name" value={formData.name} onChange={handleChange} required className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
-              <input type="text" name="college" placeholder="🏛 College Name" value={formData.college} onChange={handleChange} required className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
-              <input type="text" name="department" placeholder="📚 Department" value={formData.department} onChange={handleChange} required className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
-              <input type="email" name="email" placeholder="📧 Email" value={formData.email} onChange={handleChange} readOnly required className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
-              <input type="tel" name="phone" placeholder="📞 Phone Number" value={formData.phone} onChange={handleChange} required className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" />
-              <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition-all">
-                Register
-              </button>
-            </form>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="space-y-4">
+          <div className="flex items-center border rounded-lg p-3">
+            <FaUser className="text-gray-500 mr-3" />
+            <input type="text" name="name" placeholder="Student Name" value={formData.name} onChange={handleChange} required className="w-full outline-none" />
+          </div>
+
+          <div className="flex items-center border rounded-lg p-3">
+            <FaUniversity className="text-gray-500 mr-3" />
+            <input type="text" name="college" placeholder="College Name" value={formData.college} onChange={handleChange} required className="w-full outline-none" />
+          </div>
+
+          <div className="flex items-center border rounded-lg p-3">
+            <FaBook className="text-gray-500 mr-3" />
+            <input type="text" name="department" placeholder="Department" value={formData.department} onChange={handleChange} required className="w-full outline-none" />
+          </div>
+
+          <div className="flex items-center border rounded-lg p-3">
+            <FaEnvelope className="text-gray-500 mr-3" />
+            <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} readOnly required className="w-full outline-none" />
+          </div>
+
+          <div className="flex items-center border rounded-lg p-3">
+            <FaPhone className="text-gray-500 mr-3" />
+            <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required className="w-full outline-none" />
           </div>
         </div>
-      )}
+
+        <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition-all">
+          Register
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
 
       {/* Feedback Modal */}
       {showFeedbackModal && (
@@ -309,7 +378,8 @@ export default function EventPage() {
             <button className="absolute top-2 right-2 p-2" onClick={() => setShowFeedbackModal(false)}>
               <X className="text-gray-600 hover:text-red-500" />
             </button>
-            <h2 className="text-lg font-bold mb-4 text-center">📝 Submit Feedback</h2>
+            <h2 className="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
+              <FaCommentDots className="text-indigo-600 text-xl" /> Submit Feedback</h2>
             <form onSubmit={handleFeedbackSubmit} className="space-y-3">
               <textarea
                 className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"

@@ -21,8 +21,6 @@ const HostEvents = () => {
     endTime: "",
     eventType: "",
     customEventType: "",
-    feeType: "Free",
-    feeAmount: "",
     venueId: "",
     description: "",
     registrationLimit: "",
@@ -57,6 +55,7 @@ const HostEvents = () => {
           const venueList = venueSnapshot.docs.map((doc) => ({
             id: doc.id,
             name: doc.data().name,
+            capacity: doc.data().capacity,
           }));
           setVenues(venueList);
         } else {
@@ -87,8 +86,6 @@ const HostEvents = () => {
       endTime: "",
       eventType: "",
       customEventType: "",
-      feeType: "Free",
-      feeAmount: "",
       venueId: "",
       description: "",
       registrationLimit: ""
@@ -123,15 +120,32 @@ const HostEvents = () => {
       return;
     }
 
-    try {
-
-      const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-      setError("No user logged in.");
+    // Check if registration limit exceeds venue capacity
+    const selectedVenue = venues.find(v => v.id === eventDetails.venueId);
+    if (selectedVenue && parseInt(eventDetails.registrationLimit) > parseInt(selectedVenue.capacity)) {
+      setError(`Registration limit cannot exceed venue capacity (${selectedVenue.capacity}).`);
       return;
     }
+
+    try {
+      let isConflict = false;
+
+      let finalEventType = eventDetails.eventType === "Custom" ? eventDetails.customEventType : eventDetails.eventType;
+
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      const eventData = {
+        ...eventDetails,
+        eventType: finalEventType,
+        createdAt: new Date(),
+      };
+
+      if (!user) {
+        setError("No user logged in.");
+        return;
+      }
+      if (!editEvent || (editEvent.date !== eventDetails.date || editEvent.startTime !== eventDetails.startTime || editEvent.endTime !== eventDetails.endTime || editEvent.venueId !== eventDetails.venueId)) {
       // Fetch existing events on the same date and venue
       const eventSnapshot = await getDocs(collection(db, "events"));
       const existingEvents = eventSnapshot.docs.map(doc => doc.data());
@@ -154,6 +168,7 @@ const HostEvents = () => {
         }
         return false;
       });
+    }
 
       if (isConflict) {
         setError("An event is already scheduled at this venue within the selected time range.");
@@ -167,7 +182,7 @@ const HostEvents = () => {
           ...eventDetails,
           hostId: user.uid, // Ensure hostId remains the same
         });
-  
+
         setEvents(events.map(event => (event.id === editEvent.id ? { ...event, ...eventDetails } : event)));
       } else {
         // Create new event
@@ -176,7 +191,7 @@ const HostEvents = () => {
           hostId: user.uid, // Store hostId when creating event
           createdAt: new Date(),
         });
-  
+
         setEvents([...events, { id: eventRef.id, ...eventDetails, hostId: user.uid }]);
       }
 
@@ -249,30 +264,19 @@ const HostEvents = () => {
           <TextField label="Date" name="date" type="date" value={eventDetails.date} onChange={handleInputChange} fullWidth margin="normal" InputProps={{ inputProps: { min: new Date().toISOString().split("T")[0] } }} />
           <TextField label="Start Time" name="startTime" type="time" value={eventDetails.startTime} onChange={handleInputChange} fullWidth margin="normal" />
           <TextField label="End Time" name="endTime" type="time" value={eventDetails.endTime} onChange={handleInputChange} fullWidth margin="normal" />
-           {/* Event Type Selection */}
-                    <FormControl fullWidth margin="normal">
-                      <InputLabel>Event Type</InputLabel>
-                      <Select name="eventType" value={eventDetails.eventType} onChange={handleInputChange}>
-                        <MenuItem value="Technical">Technical</MenuItem>
-                        <MenuItem value="Non-Technical">Non-Technical</MenuItem>
-                        <MenuItem value="Sports">Sports</MenuItem>
-                        <MenuItem value="Custom">Other (Enter Below)</MenuItem>
-                      </Select>
-                    </FormControl>
-                    {eventDetails.eventType === "Custom" && (
-                      <TextField label="Custom Event Type" name="customEventType" value={eventDetails.customEventType} onChange={handleInputChange} fullWidth margin="normal" />
-                    )}
-                    {/* Fee Selection */}
-                    <FormControl fullWidth margin="normal">
-                      <InputLabel>Fee</InputLabel>
-                      <Select name="feeType" value={eventDetails.feeType} onChange={handleInputChange}>
-                        <MenuItem value="Free">Free</MenuItem>
-                        <MenuItem value="Paid">Paid</MenuItem>
-                      </Select>
-                    </FormControl>
-                    {eventDetails.feeType === "Paid" && (
-                      <TextField label="Enter Amount" name="feeAmount" type="number" value={eventDetails.feeAmount} onChange={handleInputChange} fullWidth margin="normal" />
-                    )}
+          {/* Event Type Selection */}
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Event Type</InputLabel>
+            <Select name="eventType" value={eventDetails.eventType} onChange={handleInputChange}>
+              <MenuItem value="Technical">Technical</MenuItem>
+              <MenuItem value="Non-Technical">Non-Technical</MenuItem>
+              <MenuItem value="Sports">Sports</MenuItem>
+              <MenuItem value="Custom">Other (Enter Below)</MenuItem>
+            </Select>
+          </FormControl>
+          {eventDetails.eventType === "Custom" && (
+            <TextField label="Custom Event Type" name="customEventType" value={eventDetails.customEventType} onChange={handleInputChange} fullWidth margin="normal" />
+          )}
           {/* Venue Selection Dropdown */}
           <FormControl fullWidth margin="normal">
             <InputLabel>Select Venue</InputLabel>
@@ -283,13 +287,13 @@ const HostEvents = () => {
             >
               {venues.map((venue) => (
                 <MenuItem key={venue.id} value={venue.id}>
-                  {venue.name}
+                  {venue.name}({venue.capacity} seats)
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
           <TextField label="Description" name="description" multiline rows={3} value={eventDetails.description} onChange={handleInputChange} fullWidth margin="normal" />
-                    <TextField label="Registration Limit" name="registrationLimit" type="number" value={eventDetails.registrationLimit} onChange={handleInputChange} fullWidth margin="normal" />
+          <TextField label="Registration Limit" name="registrationLimit" type="number" value={eventDetails.registrationLimit} onChange={handleInputChange} fullWidth margin="normal" />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddEventModalOpen(false)} color="secondary">
@@ -312,7 +316,6 @@ const HostEvents = () => {
               <Typography><strong>End Time:</strong> {eventDetailsView.endTime}</Typography>
               <Typography><strong>Venue:</strong> {venues.find(venue => venue.id === eventDetailsView.venueId)?.name || "Unknown"}</Typography>
               <Typography><strong>Event Type:</strong> {eventDetailsView.eventType}</Typography>
-              <Typography><strong>Fee:</strong> {eventDetailsView.feeAmount}</Typography>
               <Typography><strong>Description:</strong> {eventDetailsView.description}</Typography>
               <Typography><strong>Reg Limit:</strong> {eventDetailsView.registrationLimit}</Typography>
             </>

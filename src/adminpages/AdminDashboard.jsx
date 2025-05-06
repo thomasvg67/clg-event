@@ -14,6 +14,7 @@ import HowToRegIcon from "@mui/icons-material/HowToReg";
 import RequestPageIcon from '@mui/icons-material/RequestPage';
 
 
+
 const AdminDashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const AdminDashboard = () => {
   }
 
   const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, link: "/admindash" },
+    { text: "Dashboard", icon: <DashboardIcon />, link: "/admindash/page" },
     { text: "Users", icon: <PeopleIcon />, link: "/admindash/view-users" },
     { text: "Events", icon: <EventIcon />, link: "/admindash/view-events" },
     { text: "Registrations", icon: <HowToRegIcon />, link: "/admindash/view-registrations" },  // <-- Added Here
@@ -111,8 +112,8 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <div style={{ flexGrow: 1, padding: "20px" }}>
-        <Typography variant="h4">Admin Dashboard</Typography>
-        <Outlet /> {/* This will load view-users, view-events, etc. */}
+        {/* <Typography variant="h4">Admin Dashboard</Typography> */}
+        <Outlet /> 
       </div>
     </div>
   );

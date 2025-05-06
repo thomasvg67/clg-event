@@ -3,7 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { doc, getDoc, collection, addDoc } from "firebase/firestore";
-import react from "../assets/react.svg";
+import userProfile from "../assets/userProfile.png";
 import {
   FaRegUser,
   FaSignOutAlt,
@@ -86,7 +86,7 @@ export default function Navbar() {
             className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-gray-100"
           >
             <img
-              src={currentUser?.photoURL || react}
+              src={currentUser?.photoURL || userProfile}
               alt="Avatar"
               className="w-8 h-8 rounded-full"
             />
@@ -117,7 +117,7 @@ export default function Navbar() {
           <>
             <div className="p-4 text-center">
               <img
-                src={currentUser?.photoURL || react}
+                src={currentUser?.photoURL || userProfile}
                 alt="Avatar"
                 className="w-16 h-16 rounded-full mx-auto"
               />
@@ -129,12 +129,12 @@ export default function Navbar() {
 
             <div className="py-2">
               {role === "host" && (
-                <Link to="/hostdash" className="flex items-center gap-2 px-6 py-3 hover:bg-gray-100">
+                <Link to="/hostdash/page" className="flex items-center gap-2 px-6 py-3 hover:bg-gray-100">
                   <FaTh /> Dashboard
                 </Link>
               )}
               {role === "admin" && (
-                <Link to="/admindash" className="flex items-center gap-2 px-6 py-3 hover:bg-gray-100">
+                <Link to="/admindash/page" className="flex items-center gap-2 px-6 py-3 hover:bg-gray-100">
                   <FaTh /> Dashboard
                 </Link>
               )}

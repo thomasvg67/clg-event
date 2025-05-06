@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { db } from '../lib/firebase'; // Firebase DB reference
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc,getDocs , doc } from 'firebase/firestore';
 
 // Create context
 const EventContext = createContext();
@@ -20,6 +20,7 @@ export const useEvent = () => {
 export const EventProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [events, setEvents] = useState([]);
 
   // Function to create an event
   const createEvent = async (eventDetails) => {
@@ -76,8 +77,25 @@ export const EventProvider = ({ children }) => {
     }
   };
 
+  const getEvents = async () => {
+    setLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'events'));
+      const eventsList = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setEvents(eventsList);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   return (
-    <EventContext.Provider value={{ createEvent, updateEvent, deleteEvent, loading, error }}>
+    <EventContext.Provider value={{ createEvent, updateEvent, deleteEvent, getEvents, events, loading, error }}>
       {children}
     </EventContext.Provider>
   );

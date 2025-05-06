@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
-import { collection, getDocs, doc, updateDoc, query, where, } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, where,serverTimestamp  } from "firebase/firestore";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, } from "@mui/material";
 import * as XLSX from "xlsx";
@@ -66,23 +66,49 @@ const ViewAttendance = () => {
     if (!data) return;
 
     try {
-      const userId = data;
-      const q = query(collection(db, "eventRegistrations"), where("userId", "==", userId));
-      const querySnapshot = await getDocs(q);
 
-      if (querySnapshot.empty) {
-        alert("No registration found for this user.");
+      const [userId, eventId] = data.split("|");
+      console.log("Scanned Data:", { userId, eventId });
+
+      if (!userId || !eventId) {
+        alert("Invalid QR code format.");
         return;
       }
 
-      querySnapshot.forEach(async (docSnapshot) => {
-        await updateDoc(doc(db, "eventRegistrations", docSnapshot.id), {
-          status: "present",
-        });
+      if (selectedEvent?.id !== eventId) {
+        alert("Scanned QR code does not match the selected event. Please scan for the correct event.");
+        return;
+      }
+
+      const q = query(
+        collection(db, "eventRegistrations"),
+        where("userId", "==", userId),
+        where("eventId", "==", eventId)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        alert("No registration found for this user in this event.");
+        return;
+      }
+
+      const registrationDoc = querySnapshot.docs[0];
+      const registrationData = registrationDoc.data();
+
+      if (registrationData.status === "present") {
+        alert("Sorry, attendance already marked.");
+        return;
+      }
+
+      await updateDoc(doc(db, "eventRegistrations", registrationDoc.id), {
+        status: "present",
+        statusAt: serverTimestamp(),
       });
 
       alert("Attendance marked successfully.");
-      if (selectedEvent) await handleViewAttendance(selectedEvent);
+      await handleViewAttendance(selectedEvent);
+
     } catch (error) {
       console.error("Error scanning QR code:", error);
       alert("Error marking attendance. Try again.");
@@ -141,14 +167,18 @@ const ViewAttendance = () => {
         </div>
       )}
 
-      <div className="relative h-64 w-64">
+      {/* <div className="relative h-64 w-64">
         <div className="mt-6 text-center">
           <h2 className="text-lg font-bold mb-2">Scan QR Code</h2>
           <div className="flex justify-center">
-            <Scanner onScan={(result) => handleScan(result[0].rawValue)} />
+          <Scanner onScan={(result) => {
+  if (result && result.length > 0) {
+    handleScan(result[0].rawValue);
+  }
+}} />
           </div>
         </div>
-      </div>
+      </div> */}
 
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="lg" fullWidth>
@@ -187,6 +217,18 @@ const ViewAttendance = () => {
           ) : (
             <p>No users marked present for this event.</p>
           )}
+          <div className="relative h-64 w-64">
+            <div className="mt-6 text-center">
+              <h2 className="text-lg font-bold mb-2">Scan QR Code</h2>
+              <div className="flex justify-center">
+                <Scanner onScan={(result) => {
+                  if (result && result.length > 0) {
+                    handleScan(result[0].rawValue);
+                  }
+                }} />
+              </div>
+            </div>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)} color="primary">

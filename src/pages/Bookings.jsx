@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, doc, getDoc } from "firebase/firesto
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { FaCalendarAlt, FaClock } from "react-icons/fa";
 
 export default function Bookings() {
   const { currentUser } = useAuth();
@@ -14,7 +15,7 @@ export default function Bookings() {
   useEffect(() => {
     const fetchBookings = async () => {
       if (!currentUser) return;
-      
+
       try {
         const registrationsQuery = query(
           collection(db, "eventRegistrations"),
@@ -54,13 +55,16 @@ export default function Bookings() {
           <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">My Bookings</h2>
           <ul className="space-y-4">
             {bookings.map((event) => (
-              <li 
-                key={event.id} 
+              <li
+                key={event.id}
                 className="p-4 border rounded-lg shadow-sm bg-gray-50 cursor-pointer hover:bg-gray-200 transition"
                 onClick={() => navigate(`/event/${event.id}`)}
               >
                 <h3 className="text-xl font-semibold text-gray-800">{event.eventName}</h3>
-                <p className="text-gray-600">📅 {event.date} | ⏰ {event.startTime} - {event.endTime}</p>
+                <p className="text-gray-600 flex items-center gap-2">
+                  <FaCalendarAlt className="text-indigo-600" />{event.date} |
+                  <FaClock className="text-indigo-600" />{event.startTime} - {event.endTime}
+                </p>
               </li>
             ))}
           </ul>

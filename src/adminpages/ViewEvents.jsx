@@ -9,6 +9,7 @@ const ViewEvents = () => {
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [addEventModalOpen, setAddEventModalOpen] = useState(false);
   const [viewEventModalOpen, setViewEventModalOpen] = useState(false);
   const [editEvent, setEditEvent] = useState(null);
@@ -81,6 +82,7 @@ const ViewEvents = () => {
   const handleEdit = (event) => {
     setEditEvent(event);
     setEventDetails(event);
+    setFieldErrors({});
     setAddEventModalOpen(true);
   };
 
@@ -100,10 +102,38 @@ const ViewEvents = () => {
   };
 
   const handleSave = async () => {
-    if (!eventDetails.eventName || !eventDetails.date || !eventDetails.startTime || !eventDetails.endTime || !eventDetails.venueId) {
-      setError("Please fill all required fields.");
+    let errors = {};
+
+    if (!eventDetails.eventName.trim()) errors.eventName = "Event Name is required.";
+    if (!eventDetails.date) errors.date = "Date is required.";
+    if (!eventDetails.startTime) errors.startTime = "Start time is required.";
+    if (!eventDetails.endTime) errors.endTime = "End time is required.";
+    if (!eventDetails.venueId) errors.venueId = "Venue is required.";
+    if (!eventDetails.registrationLimit) errors.registrationLimit = "Registration limit is required.";
+
+    if (
+      eventDetails.eventType === "Custom" &&
+      !eventDetails.customEventType.trim()
+    ) {
+      errors.customEventType = "Please enter a custom event type.";
+    }
+
+    const selectedVenue = venues.find((v) => v.id === eventDetails.venueId);
+    if (
+      selectedVenue &&
+      eventDetails.registrationLimit &&
+      parseInt(eventDetails.registrationLimit) > parseInt(selectedVenue.capacity)
+    ) {
+      errors.registrationLimit = `Cannot exceed venue capacity (${selectedVenue.capacity}).`;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+
+    setFieldErrors({});
+    setError(null);
 
     try {
       let isConflict = false;
@@ -161,13 +191,18 @@ const ViewEvents = () => {
       }
 
       setAddEventModalOpen(false);
-      setError(null);
+      // setError(null);
     } catch (err) {
       setError("Error saving event: " + err.message);
     }
   };
 
-
+  const closeModal = () => {
+    setAddEventModalOpen(false);
+    setError(null);
+    setFieldErrors({});
+  };
+  
 
   return (
     <div className="p-6">
@@ -225,12 +260,12 @@ const ViewEvents = () => {
           {error && (
             <p className="text-red-500 text-sm mb-2">{error}</p>
           )}
-          <TextField label="Event Name" name="eventName" value={eventDetails.eventName} onChange={handleInputChange} fullWidth margin="normal" />
-          <TextField label="Date" name="date" type="date" value={eventDetails.date} onChange={handleInputChange} fullWidth margin="normal" InputProps={{ inputProps: { min: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split("T")[0] } }} />
-          <TextField label="Start Time" name="startTime" type="time" value={eventDetails.startTime} onChange={handleInputChange} fullWidth margin="normal" />
-          <TextField label="End Time" name="endTime" type="time" value={eventDetails.endTime} onChange={handleInputChange} fullWidth margin="normal" />
+          <TextField label="Event Name" name="eventName" value={eventDetails.eventName} onChange={handleInputChange} fullWidth margin="normal" error={!!fieldErrors.eventName} helperText={fieldErrors.eventName} />
+          <TextField label="Date" name="date" type="date" value={eventDetails.date} onChange={handleInputChange} fullWidth margin="normal" error={!!fieldErrors.date} helperText={fieldErrors.date} InputProps={{ inputProps: { min: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split("T")[0] } }} />
+          <TextField label="Start Time" name="startTime" type="time" value={eventDetails.startTime} onChange={handleInputChange} fullWidth margin="normal" error={!!fieldErrors.startTime} helperText={fieldErrors.startTime} />
+          <TextField label="End Time" name="endTime" type="time" value={eventDetails.endTime} onChange={handleInputChange} fullWidth margin="normal" error={!!fieldErrors.endTime} helperText={fieldErrors.endTime} />
           {/* Event Type Selection */}
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" error={!!fieldErrors.eventType}>
             <InputLabel>Event Type</InputLabel>
             <Select name="eventType" value={eventDetails.eventType} onChange={handleInputChange}>
               <MenuItem value="Technical">Technical</MenuItem>
@@ -240,11 +275,11 @@ const ViewEvents = () => {
             </Select>
           </FormControl>
           {eventDetails.eventType === "Custom" && (
-            <TextField label="Custom Event Type" name="customEventType" value={eventDetails.customEventType} onChange={handleInputChange} fullWidth margin="normal" />
+            <TextField label="Custom Event Type" name="customEventType" value={eventDetails.customEventType} onChange={handleInputChange} fullWidth margin="normal" error={!!fieldErrors.customEventType} helperText={fieldErrors.customEventType} />
           )}
-          
+
           {/* Venue Selection Dropdown */}
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" error={!!fieldErrors.venueId}>
             <InputLabel>Select Venue</InputLabel>
             <Select
               name="venueId"
@@ -257,10 +292,15 @@ const ViewEvents = () => {
                 </MenuItem>
               ))}
             </Select>
+            {fieldErrors.venueId && (
+              <Typography color="error" variant="caption">
+                {fieldErrors.venueId}
+              </Typography>
+            )}
           </FormControl>
 
           <TextField label="Description" name="description" multiline rows={3} value={eventDetails.description} onChange={handleInputChange} fullWidth margin="normal" />
-          <TextField label="Registration Limit" name="registrationLimit" type="number" value={eventDetails.registrationLimit} onChange={handleInputChange} fullWidth margin="normal" />
+          <TextField label="Registration Limit" name="registrationLimit" type="number" value={eventDetails.registrationLimit} onChange={handleInputChange} fullWidth margin="normal" error={!!fieldErrors.registrationLimit} helperText={fieldErrors.registrationLimit} />
 
         </DialogContent>
         <DialogActions>
@@ -284,7 +324,6 @@ const ViewEvents = () => {
               <Typography><strong>End Time:</strong> {eventDetailsView.endTime}</Typography>
               <Typography><strong>Venue:</strong> {venues.find(venue => venue.id === eventDetailsView.venueId)?.name || "Unknown"}</Typography>
               <Typography><strong>Event Type:</strong> {eventDetailsView.eventType}</Typography>
-              <Typography><strong>Fee:</strong> {eventDetailsView.feeAmount}</Typography>
               <Typography><strong>Description:</strong> {eventDetailsView.description}</Typography>
               <Typography><strong>Reg Limit:</strong> {eventDetailsView.registrationLimit}</Typography>
             </>

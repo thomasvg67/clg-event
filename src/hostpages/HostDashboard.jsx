@@ -35,7 +35,7 @@ const HostDashboard = () => {
   }
 
   const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, link: "/hostdash" },
+    { text: "Dashboard", icon: <DashboardIcon />, link: "/hostdash/page" },
     { text: "My Events", icon: <EventIcon />, link: "/hostdash/my-events" },
     { text: "Attendance", icon: <AssignmentIcon />, link: "/hostdash/view-attendance" },
     { text: "Feedback", icon: <FeedbackIcon />, link: "/hostdash/view-feedback" },
@@ -103,7 +103,7 @@ const HostDashboard = () => {
 
       {/* Main Content */}
       <div style={{ flexGrow: 1, padding: "20px" }}>
-        <Typography variant="h4">Host Dashboard</Typography>
+        {/* <Typography variant="h4">Host Dashboard</Typography> */}
         <Outlet />
       </div>
     </div>
