@@ -227,6 +227,13 @@ export default function EventPage() {
       toast.error("You must be logged in to register for this event.");
       return;
     }
+
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error("Enter a valid 10-digit phone number starting with 6-9.");
+      return;
+    }
+
     try {
       await addDoc(collection(db, "eventRegistrations"), {
         userId: currentUser.uid,
@@ -323,52 +330,59 @@ export default function EventPage() {
       </div>
 
       {/* Registration Modal */}
-{showModal && (
-  <div className="fixed inset-0 backdrop-blur-sm flex justify-center items-center p-4">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative animate-fadeIn">
-      <button className="absolute top-2 right-2 p-2" onClick={handleCloseModal}>
-        <X className="text-gray-600 hover:text-red-500" />
-      </button>
-      <h2 className="text-lg font-bold mb-4 text-center">
-        <FaTicketAlt className="inline mr-2 text-indigo-600" />
-        Event Registration
-      </h2>
+      {showModal && (
+        <div className="fixed inset-0 backdrop-blur-sm flex justify-center items-center p-4">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative animate-fadeIn">
+            <button className="absolute top-2 right-2 p-2" onClick={handleCloseModal}>
+              <X className="text-gray-600 hover:text-red-500" />
+            </button>
+            <h2 className="text-lg font-bold mb-4 text-center">
+              <FaTicketAlt className="inline mr-2 text-indigo-600" />
+              Event Registration
+            </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="space-y-4">
-          <div className="flex items-center border rounded-lg p-3">
-            <FaUser className="text-gray-500 mr-3" />
-            <input type="text" name="name" placeholder="Student Name" value={formData.name} onChange={handleChange} required className="w-full outline-none" />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="space-y-4">
+                <div className="flex items-center border rounded-lg p-3">
+                  <FaUser className=" mr-3" />
+                  <input type="text" name="name" placeholder="Student Name" value={formData.name} onChange={handleChange} required className="w-full outline-none" />
+                </div>
 
-          <div className="flex items-center border rounded-lg p-3">
-            <FaUniversity className="text-gray-500 mr-3" />
-            <input type="text" name="college" placeholder="College Name" value={formData.college} onChange={handleChange} required className="w-full outline-none" />
-          </div>
+                <div className="flex items-center border rounded-lg p-3">
+                  <FaUniversity className=" mr-3" />
+                  <input type="text" name="college" placeholder="College Name" value={formData.college} onChange={handleChange} required className="w-full outline-none" />
+                </div>
 
-          <div className="flex items-center border rounded-lg p-3">
-            <FaBook className="text-gray-500 mr-3" />
-            <input type="text" name="department" placeholder="Department" value={formData.department} onChange={handleChange} required className="w-full outline-none" />
-          </div>
+                <div className="flex items-center border rounded-lg p-3">
+                  <FaBook className=" mr-3" />
+                  <select name="department" value={formData.department} onChange={handleChange} required className="w-full outline-none">
+                    <option value="">Select Department</option>
+                    <option value="B.Tech Computer Science">B.Tech Computer Science</option>
+                    <option value="B.Tech Electronics">B.Tech Electronics</option>
+                    <option value="MCA">MCA</option>
+                    <option value="MBA">MBA</option>
+                    {/* Add more departments as needed */}
+                  </select>
+                </div>
 
-          <div className="flex items-center border rounded-lg p-3">
-            <FaEnvelope className="text-gray-500 mr-3" />
-            <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} readOnly required className="w-full outline-none" />
-          </div>
+                <div className="flex items-center border rounded-lg p-3">
+                  <FaEnvelope className=" mr-3" />
+                  <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} readOnly required className="w-full outline-none" />
+                </div>
 
-          <div className="flex items-center border rounded-lg p-3">
-            <FaPhone className="text-gray-500 mr-3" />
-            <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required className="w-full outline-none" />
+                <div className="flex items-center border rounded-lg p-3">
+                  <FaPhone className=" mr-3" />
+                  <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required className="w-full outline-none" />
+                </div>
+              </div>
+
+              <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition-all">
+                Register
+              </button>
+            </form>
           </div>
         </div>
-
-        <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition-all">
-          Register
-        </button>
-      </form>
-    </div>
-  </div>
-)}
+      )}
 
 
       {/* Feedback Modal */}

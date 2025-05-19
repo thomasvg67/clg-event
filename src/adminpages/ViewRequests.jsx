@@ -110,7 +110,7 @@ const ViewRequests = () => {
             <TableBody>
               {(tabIndex === 0 ? hostRequests : eventRequests).map((request) => (
                 <TableRow key={request.id} className="hover:bg-gray-50">
-                  <TableCell>{request.name}</TableCell>
+                  <TableCell>{request.displayName}</TableCell>
                   <TableCell>{request.email}</TableCell>
                   <TableCell>{request.status}</TableCell>
                   <TableCell>

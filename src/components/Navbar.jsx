@@ -15,6 +15,7 @@ import {
 
 export default function Navbar() {
   const { currentUser, logout } = useAuth();
+  const [userData, setUserData] = useState({});
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [role, setRole] = useState(null);
@@ -26,7 +27,9 @@ export default function Navbar() {
         try {
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (userDoc.exists()) {
-            setRole(userDoc.data().role);
+            const data = userDoc.data();
+            setRole(data.role);
+            setUserData(data);
           }
         } catch (err) {
           console.error("Error fetching user role:", err);
@@ -41,7 +44,7 @@ export default function Navbar() {
     try {
       await addDoc(collection(db, "hostRequests"), {
         userId: currentUser.uid,
-        name: currentUser.displayName || currentUser.email,
+        displayName: userData.displayName || currentUser.displayName || currentUser.email.split('@')[0],
         email: currentUser.email,
         status: "Pending",
         createdAt: new Date(),
@@ -60,7 +63,9 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 w-full flex justify-between items-center px-8 py-4 shadow-md bg-white z-50">
-      <h1 className="text-2xl font-bold text-blue-700">EVENTHUB</h1>
+      <Link to="/">
+        <h1 className="text-2xl font-bold text-blue-700 cursor-pointer">EVENTHUB</h1>
+      </Link>
 
       <div className="relative flex gap-4">
         {role === "host" ? (
@@ -90,7 +95,7 @@ export default function Navbar() {
               alt="Avatar"
               className="w-8 h-8 rounded-full"
             />
-            <span>{currentUser?.displayName || currentUser?.email?.split("@")[0]}</span>
+            <span>{userData.displayName || currentUser?.email?.split("@")[0]}</span>
           </button>
         ) : (
           <Link to="/login">
@@ -122,8 +127,7 @@ export default function Navbar() {
                 className="w-16 h-16 rounded-full mx-auto"
               />
               <p className="font-semibold mt-2">
-                {currentUser?.displayName || currentUser?.email?.split("@")[0]}
-              </p>
+                {userData.displayName || currentUser?.email?.split("@")[0]}              </p>
               <p className="text-gray-500 text-sm">{currentUser?.email}</p>
             </div>
 

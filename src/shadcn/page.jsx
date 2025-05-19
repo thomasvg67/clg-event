@@ -1,174 +1,139 @@
 import { Link } from "react-router-dom";
 import { CalendarDays, Clock, MapPin, Plus, Users, Building, MessageSquare, UserCheck, FileText } from "lucide-react"
-
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
+import { doc, getDoc, collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { useAuth } from "../contexts/AuthContext";
+import { db } from "../lib/firebase";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
-  // Sample data - in a real app, this would come from a database
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: "Annual Tech Conference",
-      date: "May 15, 2025",
-      time: "9:00 AM - 5:00 PM",
-      location: "Convention Center",
-      attendees: 120,
-      registered: 85,
-    },
-    {
-      id: 2,
-      title: "Product Launch",
-      date: "June 2, 2025",
-      time: "2:00 PM - 4:00 PM",
-      location: "Main Auditorium",
-      attendees: 75,
-      registered: 62,
-    },
-    {
-      id: 3,
-      title: "Team Building Workshop",
-      date: "June 10, 2025",
-      time: "10:00 AM - 3:00 PM",
-      location: "Recreation Center",
-      attendees: 30,
-      registered: 28,
-    },
-  ]
 
-  const pastEvents = [
-    {
-      id: 4,
-      title: "Quarterly Review",
-      date: "March 30, 2025",
-      time: "1:00 PM - 3:00 PM",
-      location: "Conference Room A",
-      attendees: 25,
-      registered: 25,
-    },
-    {
-      id: 5,
-      title: "Networking Mixer",
-      date: "February 15, 2025",
-      time: "6:00 PM - 8:00 PM",
-      location: "Downtown Lounge",
-      attendees: 50,
-      registered: 43,
-    },
-  ]
+  const { eventId } = useParams();
+  const [users, setUsers] = useState([]);
+  const [event, setEvent] = useState(null);
+  const [venue, setVenue] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [rating, setRating] = useState(0);
+  const [attended, setAttended] = useState(false);
+  const [registrations, setRegistrations] = useState([]);
 
-  // Sample data for venues
-  const venues = [
-    {
-      id: 1,
-      name: "Convention Center",
-      capacity: 500,
-      address: "123 Main St, Downtown",
-      availability: "Available",
-      amenities: ["Wi-Fi", "Projector", "Catering", "Parking"],
-    },
-    {
-      id: 2,
-      name: "Main Auditorium",
-      capacity: 200,
-      address: "456 University Ave",
-      availability: "Booked until June 5",
-      amenities: ["Wi-Fi", "Sound System", "Stage", "Seating"],
-    },
-    {
-      id: 3,
-      name: "Conference Room A",
-      capacity: 50,
-      address: "789 Business Park",
-      availability: "Available",
-      amenities: ["Wi-Fi", "Whiteboard", "Video Conferencing"],
-    },
-  ]
+  // const [hostRequests, setHostRequests] = useState([]);
+  const [timeRemaining, setTimeRemaining] = useState("");
+  const navigate = useNavigate();
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [pastEvents, setPastEvents] = useState([]);
+  const [venues, setVenues] = useState([]);
+  const [eventRequests, setEventRequests] = useState([]);
+  const [hostRequests, setHostRequests] = useState([]);
+  const [feedbackItems, setFeedbackItems] = useState([]);
 
-  // Sample data for event requests
-  const eventRequests = [
-    {
-      id: 1,
-      title: "Startup Pitch Competition",
-      requestedBy: "Tech Incubator Group",
-      date: "July 10, 2025",
-      status: "Pending",
-      requestedOn: "April 1, 2025",
-    },
-    {
-      id: 2,
-      title: "Alumni Reunion",
-      requestedBy: "Alumni Association",
-      date: "August 15, 2025",
-      status: "Under Review",
-      requestedOn: "March 28, 2025",
-    },
-    {
-      id: 3,
-      title: "Career Fair",
-      requestedBy: "Career Services",
-      date: "September 5, 2025",
-      status: "Approved",
-      requestedOn: "March 15, 2025",
-    },
-  ]
+  useEffect(() => {
 
-  // Sample data for host requests
-  const hostRequests = [
-    {
-      id: 1,
-      name: "Dr. Jane Smith",
-      organization: "Tech Innovations Inc.",
-      eventType: "Workshop",
-      status: "Pending",
-      requestedOn: "April 2, 2025",
-    },
-    {
-      id: 2,
-      name: "Prof. Michael Johnson",
-      organization: "University Research Dept.",
-      eventType: "Conference",
-      status: "Approved",
-      requestedOn: "March 25, 2025",
-    },
-    {
-      id: 3,
-      name: "Sarah Williams",
-      organization: "Community Outreach",
-      eventType: "Seminar",
-      status: "Under Review",
-      requestedOn: "March 30, 2025",
-    },
-  ]
+    const fetchEventName = async (eventId) => {
+      if (!eventId) return "Unknown Event";
+      const eventRef = doc(db, "events", eventId);
+      const eventSnap = await getDoc(eventRef);
+      return eventSnap.exists() ? eventSnap.data().eventName : "Unknown Event";
+    };
 
-  // Sample data for feedback
-  const feedbackItems = [
-    {
-      id: 1,
-      eventTitle: "Quarterly Review",
-      submittedBy: "John Doe",
-      rating: 4.5,
-      comment: "Well organized event with great speakers.",
-      submittedOn: "April 1, 2025",
-    },
-    {
-      id: 2,
-      eventTitle: "Networking Mixer",
-      submittedBy: "Emily Johnson",
-      rating: 3.8,
-      comment: "Good networking opportunities, but venue was too small.",
-      submittedOn: "February 16, 2025",
-    },
-    {
-      id: 3,
-      eventTitle: "Product Launch",
-      submittedBy: "Michael Brown",
-      rating: 5.0,
-      comment: "Excellent presentation and well managed event.",
-      submittedOn: "March 15, 2025",
-    },
-  ]
+    const fetchDisplayName = async (userId) => {
+      if (!userId) return "Unknown User";
+      const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
+      return userSnap.exists() ? userSnap.data().displayName : "Unknown User";
+    };
+
+    const fetchVenueName = async (venueId) => {
+      if (!venueId) return "Unknown Venue";
+      const venueRef = doc(db, "venues", venueId);
+      const venueSnap = await getDoc(venueRef);
+      return venueSnap.exists() ? venueSnap.data().name : "Unknown Venue";
+    };
+
+    const fetchData = async () => {
+      try {
+        // Fetch events
+        const eventsSnapshot = await getDocs(collection(db, "events"));
+        const now = new Date();
+        const upcoming = [];
+        const past = [];
+
+        for (const docSnap of eventsSnapshot.docs) {
+          const data = docSnap.data();
+          const eventDate = new Date(data.date);
+          const venueName = await fetchVenueName(data.venueId);
+        
+          // Get registration count
+          const registrationsQuery = query(
+            collection(db, "eventRegistrations"),
+            where("eventId", "==", docSnap.id)
+          );
+          const registrationsSnapshot = await getDocs(registrationsQuery);
+          const registeredCount = registrationsSnapshot.size;
+        
+          const event = {
+            id: docSnap.id,
+            ...data,
+            venueName,
+            registered: registeredCount, // Add this
+          };
+        
+          if (eventDate >= now) {
+            upcoming.push(event);
+          } else {
+            past.push(event);
+          }
+        }
+
+        setUpcomingEvents(upcoming);
+        setPastEvents(past);
+
+        // Fetch venues
+        const venuesSnapshot = await getDocs(collection(db, "venues"));
+        const venuesList = venuesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setVenues(venuesList);
+
+        // Fetch event requests
+        const eventRequestsSnapshot = await getDocs(collection(db, "eventRequests"));
+        const eventRequestsList = eventRequestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setEventRequests(eventRequestsList);
+
+        // Fetch host requests
+        const hostRequestsSnapshot = await getDocs(collection(db, "hostRequests"));
+        const hostRequestsList = hostRequestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setHostRequests(hostRequestsList);
+
+        // Fetch feedback
+        const feedbackSnapshot = await getDocs(collection(db, "eventFeedback"));
+        const feedbackList = await Promise.all(
+          feedbackSnapshot.docs.map(async docSnap => {
+            const data = docSnap.data();
+            const displayName = await fetchDisplayName(data.userId);
+            const eventName = await fetchEventName(data.eventId);
+            return { id: docSnap.id, ...data, displayName, eventName };
+          })
+        );
+        setFeedbackItems(feedbackList);
+
+
+
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
 
   return (
     <main className="container mx-auto py-6 px-4 md:px-6">
@@ -180,7 +145,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Manage events, venues, requests, and feedback</p>
         </div>
         <Button asChild>
-          <Link href="/events/create">
+          <Link to="/admindash/view-events">
             <Plus className="mr-2 h-4 w-4" />
             Create Event
           </Link>
@@ -259,10 +224,10 @@ export default function Dashboard() {
         <TabsContent value="events">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold">Upcoming Events</h2>
-            <Button variant="outline" size="sm">
+            {/* <Button variant="outline" size="sm">
               <CalendarDays className="h-4 w-4 mr-2" />
               View Calendar
-            </Button>
+            </Button> */}
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
             {upcomingEvents.map((event) => (
@@ -282,10 +247,12 @@ export default function Dashboard() {
         <TabsContent value="venues">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold">Venue Management</h2>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Venue
-            </Button>
+            <Link to="/admindash/view-venue">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Venue
+              </Button>
+            </Link>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {venues.map((venue) => (
@@ -295,7 +262,7 @@ export default function Dashboard() {
                   <CardDescription>
                     <div className="flex items-center gap-1 mt-1">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{venue.address}</span>
+                      <span>{venue.location}</span>
                     </div>
                     <div className="flex items-center gap-1 mt-1">
                       <Users className="h-4 w-4 text-muted-foreground" />
@@ -304,28 +271,28 @@ export default function Dashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2 mb-2">
+                  {/* <div className="flex items-center gap-2 mb-2">
                     <span
                       className={`h-2 w-2 rounded-full ${venue.availability === "Available" ? "bg-green-500" : "bg-yellow-500"}`}
                     ></span>
                     <span>{venue.availability}</span>
-                  </div>
+                  </div> */}
                   <div className="mt-2">
                     <p className="text-sm font-medium mb-1">Amenities:</p>
-                    <div className="flex flex-wrap gap-1">
+                    {/* <div className="flex flex-wrap gap-1">
                       {venue.amenities.map((amenity, index) => (
                         <span key={index} className="text-xs bg-secondary px-2 py-1 rounded-full">
                           {amenity}
                         </span>
                       ))}
+                    </div> */}
+                    <div className="flex flex-wrap gap-1">
+                      {/* Static amenities values */}
+                      <span className="text-xs bg-secondary px-2 py-1 rounded-full">Wi-Fi</span>
+                      <span className="text-xs bg-secondary px-2 py-1 rounded-full">Projector</span>
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link href={`/venues/${venue.id}`}>Manage Venue</Link>
-                  </Button>
-                </CardFooter>
               </Card>
             ))}
           </div>
@@ -333,118 +300,57 @@ export default function Dashboard() {
 
         {/* Requests Tab */}
         <TabsContent value="requests">
-          <Tabs defaultValue="event-requests">
-            <TabsList className="mb-4">
-              <TabsTrigger value="event-requests">Event Requests</TabsTrigger>
+          <Tabs defaultValue="host-requests">
+            {/* <TabsList className="mb-4">
               <TabsTrigger value="host-requests">Host Requests</TabsTrigger>
-            </TabsList>
-
-            {/* Event Requests Tab */}
-            <TabsContent value="event-requests">
-              <div className="flex justify-between mb-4">
-                <h2 className="text-xl font-semibold">Event Requests</h2>
-                <Button variant="outline" size="sm">
-                  Export List
-                </Button>
-              </div>
-              <div className="space-y-4">
-                {eventRequests.map((request) => (
-                  <Card key={request.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between">
-                        <CardTitle>{request.title}</CardTitle>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            request.status === "Pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : request.status === "Approved"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {request.status}
-                        </span>
-                      </div>
-                      <CardDescription>
-                        Requested by {request.requestedBy} on {request.requestedOn}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="flex items-center gap-1">
-                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                        <span>Requested for {request.date}</span>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end gap-2">
-                      {request.status === "Pending" && (
-                        <>
-                          <Button variant="destructive" size="sm">
-                            Decline
-                          </Button>
-                          <Button size="sm">Approve</Button>
-                        </>
-                      )}
-                      {request.status === "Under Review" && (
-                        <>
-                          <Button variant="outline" size="sm">
-                            Request Info
-                          </Button>
-                          <Button variant="destructive" size="sm">
-                            Decline
-                          </Button>
-                          <Button size="sm">Approve</Button>
-                        </>
-                      )}
-                      {request.status === "Approved" && (
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
+            </TabsList> */}
 
             {/* Host Requests Tab */}
             <TabsContent value="host-requests">
               <div className="flex justify-between mb-4">
                 <h2 className="text-xl font-semibold">Host Requests</h2>
-                <Button variant="outline" size="sm">
-                  Export List
-                </Button>
+                <Link to="/admindash/view-requests">
+                  <Button variant="outline" size="sm">
+                    View details
+                  </Button>
+                </Link>
               </div>
               <div className="space-y-4">
                 {hostRequests.map((request) => (
                   <Card key={request.id}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between">
-                        <CardTitle>{request.name}</CardTitle>
+                        <CardTitle>{request.displayName}</CardTitle>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            request.status === "Pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : request.status === "Approved"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800"
-                          }`}
+                          className={`px-2 py-1 rounded-full text-xs ${request.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : request.status === "Approved"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-blue-100 text-blue-800"
+                            }`}
                         >
                           {request.status}
                         </span>
                       </div>
-                      <CardDescription>{request.organization}</CardDescription>
+                      <CardDescription>{request.email}</CardDescription>
                     </CardHeader>
                     <CardContent className="pb-2">
-                      <div className="flex items-center gap-1">
+                      {/* <div className="flex items-center gap-1">
                         <UserCheck className="h-4 w-4 text-muted-foreground" />
                         <span>Wants to host: {request.eventType}</span>
-                      </div>
+                      </div> */}
                       <div className="flex items-center gap-1 mt-1">
                         <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                        <span>Requested on {request.requestedOn}</span>
+                        <span>
+                          Requested on{" "}
+                          {request.createdAt?.toDate().toLocaleString("en-US", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </span>
                       </div>
                     </CardContent>
-                    <CardFooter className="flex justify-end gap-2">
+                    {/* <CardFooter className="flex justify-end gap-2">
                       {request.status === "Pending" && (
                         <>
                           <Button variant="destructive" size="sm">
@@ -469,7 +375,7 @@ export default function Dashboard() {
                           View Details
                         </Button>
                       )}
-                    </CardFooter>
+                    </CardFooter> */}
                   </Card>
                 ))}
               </div>
@@ -481,32 +387,40 @@ export default function Dashboard() {
         <TabsContent value="feedback">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold">Event Feedback</h2>
-            <Button variant="outline" size="sm">
+            {/* <Button variant="outline" size="sm">
               Generate Report
-            </Button>
+            </Button> */}
           </div>
           <div className="space-y-4">
             {feedbackItems.map((feedback) => (
               <Card key={feedback.id}>
                 <CardHeader>
                   <div className="flex justify-between">
-                    <CardTitle>{feedback.eventTitle}</CardTitle>
+                    <CardTitle>{feedback.eventName || "Unnamed Event"}</CardTitle>
                     <div className="flex items-center">
                       <span className="font-bold mr-1">{feedback.rating}</span>
                       <span className="text-yellow-500">★</span>
                     </div>
                   </div>
                   <CardDescription>
-                    Submitted by {feedback.submittedBy} on {feedback.submittedOn}
+                    <span>
+                      Submitted by {feedback.displayName || "Anonymous"} on{" "}
+                      {feedback.submittedAt?.toDate
+                        ? feedback.submittedAt.toDate().toLocaleString("en-US", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })
+                        : "Unknown Date"}
+                    </span>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm">{feedback.comment}</p>
+                  {feedback.feedback && <p className="text-sm">{feedback.feedback}</p>}
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button variant="outline" size="sm">
-                    Respond
-                  </Button>
+                  {/* <Button variant="outline" size="sm">
+        Respond
+      </Button> */}
                 </CardFooter>
               </Card>
             ))}
@@ -521,7 +435,7 @@ function EventCard({ event, isPast = false }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{event.title}</CardTitle>
+        <CardTitle>{event.eventName}</CardTitle>
         <CardDescription>
           <div className="flex items-center gap-1 mt-1">
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -529,11 +443,11 @@ function EventCard({ event, isPast = false }) {
           </div>
           <div className="flex items-center gap-1 mt-1">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span>{event.time}</span>
+            <span>{event.startTime}</span>
           </div>
           <div className="flex items-center gap-1 mt-1">
             <MapPin className="h-4 w-4 text-muted-foreground" />
-            <span>{event.location}</span>
+            <span>{event.venueName}</span>
           </div>
         </CardDescription>
       </CardHeader>
@@ -547,13 +461,13 @@ function EventCard({ event, isPast = false }) {
         <div className="w-full bg-secondary h-2 rounded-full mt-2">
           <div
             className="bg-primary h-2 rounded-full"
-            style={{ width: `${(event.registered / event.attendees) * 100}%` }}
-          ></div>
+            // style={{ width: `${((event.registered / (event.attendees || 1)) * 100).toFixed(1)}%` }}
+            ></div>
         </div>
       </CardContent>
       <CardFooter>
         <Button asChild variant={isPast ? "outline" : "default"} className="w-full">
-          <Link href={`/events/${event.id}`}>{isPast ? "View Summary" : "Manage Event"}</Link>
+          {/* <Link href={`/events/${event.id}`}>{isPast ? "View Summary" : "Manage Event"}</Link> */}
         </Button>
       </CardFooter>
     </Card>
